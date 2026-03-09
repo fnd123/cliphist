@@ -1,0 +1,23 @@
+# Build directories
+/build/
+/build-*/
+
+# CPack outputs
+/_CPack_Packages/
+/cliphist-*.deb
+/cliphist-*.tar.gz
+/cliphist-*.zip
+/cliphist-*.exe
+
+# CMake/Ninja generated files
+/CMakeUserPresets.json
+/.cmake/
+/.ninja_log
+/.ninja_deps
+
+# IDE/editor
+/.idea/
+/.vscode/
+*.swp
+*.swo
+

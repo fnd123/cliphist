@@ -1,0 +1,16 @@
+if(MSVC)
+  set(PROJECT_WARNINGS
+    /W4
+    /permissive-
+  )
+else()
+  set(PROJECT_WARNINGS
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wconversion
+    -Wshadow
+    -Wnon-virtual-dtor
+    -Wold-style-cast
+  )
+endif()

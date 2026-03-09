@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=剪贴板历史
+Name[zh_CN]=剪贴板历史
+Comment=在托盘中运行的剪贴板历史管理器
+Comment[zh_CN]=在托盘中运行的剪贴板历史管理器
+Exec=cliphist desktop
+Icon=cliphist
+Terminal=false
+Categories=Utility;
+StartupNotify=true
