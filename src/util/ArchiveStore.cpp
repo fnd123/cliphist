@@ -11,9 +11,20 @@ namespace cliphist {
 
 namespace {
 std::tm LocalTime(std::int64_t unix_sec) {
-  std::time_t t = static_cast<std::time_t>(unix_sec);
+  const std::time_t t = static_cast<std::time_t>(unix_sec);
   std::tm tm_buf{};
+#if defined(_WIN32)
+  if (localtime_s(&tm_buf, &t) != 0) {
+    return {};
+  }
+#elif defined(_POSIX_THREAD_SAFE_FUNCTIONS)
   localtime_r(&t, &tm_buf);
+#else
+  const std::tm* tm_ptr = std::localtime(&t);
+  if (tm_ptr != nullptr) {
+    tm_buf = *tm_ptr;
+  }
+#endif
   return tm_buf;
 }
 

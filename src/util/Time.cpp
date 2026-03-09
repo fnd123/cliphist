@@ -11,7 +11,11 @@ namespace {
 std::tm LocalTime(std::int64_t ts) {
   const std::time_t raw = static_cast<std::time_t>(ts);
   std::tm tm_buf{};
-#if defined(_POSIX_THREAD_SAFE_FUNCTIONS)
+#if defined(_WIN32)
+  if (localtime_s(&tm_buf, &raw) != 0) {
+    return {};
+  }
+#elif defined(_POSIX_THREAD_SAFE_FUNCTIONS)
   localtime_r(&raw, &tm_buf);
 #else
   const std::tm* tm_ptr = std::localtime(&raw);
