@@ -74,7 +74,7 @@ jobs:
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-qt5-base
             mingw-w64-x86_64-sqlite3
-            nsis
+            mingw-w64-x86_64-nsis
 
       - name: Configure
         shell: msys2 {0}
