@@ -104,16 +104,7 @@ add_executable(cliphist src/main.cpp)
 target_link_libraries(cliphist PRIVATE cliphist_lib)
 target_compile_options(cliphist PRIVATE ${PROJECT_WARNINGS})
 
-if(WIN32 AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.21)
-  install(TARGETS cliphist
-    RUNTIME DESTINATION bin
-    RUNTIME_DEPENDENCIES
-      PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
-      POST_EXCLUDE_REGEXES ".*[\\\\/][Ss]ystem32[\\\\/].*"
-  )
-else()
-  install(TARGETS cliphist RUNTIME DESTINATION bin)
-endif()
+install(TARGETS cliphist RUNTIME DESTINATION bin)
 
 if(CLIPHIST_ENABLE_X11)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cliphist.desktop
