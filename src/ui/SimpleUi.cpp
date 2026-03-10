@@ -75,7 +75,46 @@ bool IsTodayLabel(const std::string& day_label) {
   return day_label.rfind("今天", 0) == 0;
 }
 
-QString EntryTimeLabel(const ClipboardEntry& entry) {
+bool IsYesterdayLabel(const std::string& day_label) {
+  return day_label.rfind("昨天", 0) == 0;
+}
+
+constexpr const char* kGroupToday = "today";
+constexpr const char* kGroupYesterday = "yesterday";
+constexpr const char* kGroupOlder = "older";
+constexpr const char* kGroupFavorites = "favorites";
+
+QString GroupTitle(const std::string& key, int count) {
+  const QString suffix = QString("  %1 条").arg(count);
+  if (key == kGroupToday) {
+    return QString("今天 %1").arg(ToQString(FormatLocalDate(UnixTimeSeconds()))) + suffix;
+  }
+  if (key == kGroupYesterday) {
+    return QString("昨天 %1")
+               .arg(ToQString(FormatLocalDate(UnixTimeSeconds() - 86400))) +
+           suffix;
+  }
+  if (key == kGroupOlder) {
+    return "更久以前" + suffix;
+  }
+  if (key == kGroupFavorites) {
+    return "收藏" + suffix;
+  }
+  return "分组" + suffix;
+}
+
+QString EntryTimeLabel(const ClipboardEntry& entry, const std::string& group_key) {
+  if (group_key == kGroupToday || group_key == kGroupYesterday) {
+    return ToQString(FormatLocalTime(entry.updated_at));
+  }
+  if (group_key == kGroupOlder) {
+    return ToQString(FormatLocalDateTime(entry.updated_at));
+  }
+
+  const std::string day_label = DescribeLocalDay(entry.updated_at);
+  if (IsTodayLabel(day_label) || IsYesterdayLabel(day_label)) {
+    return ToQString(FormatLocalTime(entry.updated_at));
+  }
   return ToQString(FormatLocalDateTime(entry.updated_at));
 }
 
@@ -89,8 +128,22 @@ struct UiGroup {
 std::vector<UiGroup> BuildGroups(const std::vector<ClipboardEntry>& entries,
                                  const QString& search_query,
                                  bool favorites_only) {
-  std::vector<ClipboardEntry> normal_entries;
-  std::vector<ClipboardEntry> favorite_entries;
+  UiGroup today_group;
+  today_group.key = kGroupToday;
+  today_group.default_collapsed = false;
+
+  UiGroup yesterday_group;
+  yesterday_group.key = kGroupYesterday;
+  yesterday_group.default_collapsed = true;
+
+  UiGroup older_group;
+  older_group.key = kGroupOlder;
+  older_group.default_collapsed = true;
+
+  UiGroup favorites_group;
+  favorites_group.key = kGroupFavorites;
+  favorites_group.default_collapsed = true;
+
   const QString trimmed = search_query.trimmed();
 
   for (const auto& entry : entries) {
@@ -102,48 +155,41 @@ std::vector<UiGroup> BuildGroups(const std::vector<ClipboardEntry>& entries,
       continue;
     }
     if (entry.favorite) {
-      favorite_entries.push_back(entry);
+      favorites_group.entries.push_back(entry);
+      continue;
+    }
+
+    const std::string day_label = DescribeLocalDay(entry.updated_at);
+    if (IsTodayLabel(day_label)) {
+      today_group.entries.push_back(entry);
+    } else if (IsYesterdayLabel(day_label)) {
+      yesterday_group.entries.push_back(entry);
     } else {
-      normal_entries.push_back(entry);
+      older_group.entries.push_back(entry);
     }
   }
 
-  auto append_groups = [](const char* section_title,
-                          const std::vector<ClipboardEntry>& source,
-                          std::vector<UiGroup>* out) {
-    if (source.empty()) {
-      return;
-    }
-    std::string current_day;
-    UiGroup current_group;
-    for (const auto& entry : source) {
-      const std::string day_label = DescribeLocalDay(entry.updated_at);
-      if (current_day != day_label) {
-        if (!current_group.entries.empty()) {
-          out->push_back(current_group);
-        }
-        current_day = day_label;
-        current_group = UiGroup{};
-        current_group.key = std::string(section_title) + "/" + day_label;
-        current_group.title =
-            std::string(section_title) + " / " + day_label + "  " +
-            std::to_string(0) + " 条";
-        current_group.default_collapsed =
-            std::string(section_title) == "收藏" || !IsTodayLabel(day_label);
-      }
-      current_group.entries.push_back(entry);
-      current_group.title =
-          std::string(section_title) + " / " + day_label + "  " +
-          std::to_string(current_group.entries.size()) + " 条";
-    }
-    if (!current_group.entries.empty()) {
-      out->push_back(current_group);
-    }
-  };
+  today_group.title =
+      ToStdString(GroupTitle(today_group.key,
+                             static_cast<int>(today_group.entries.size())));
+  yesterday_group.title = ToStdString(
+      GroupTitle(yesterday_group.key, static_cast<int>(yesterday_group.entries.size())));
+  older_group.title =
+      ToStdString(GroupTitle(older_group.key, static_cast<int>(older_group.entries.size())));
+  favorites_group.title = ToStdString(
+      GroupTitle(favorites_group.key, static_cast<int>(favorites_group.entries.size())));
 
   std::vector<UiGroup> groups;
-  append_groups("历史", normal_entries, &groups);
-  append_groups("收藏", favorite_entries, &groups);
+  if (favorites_only) {
+    favorites_group.default_collapsed = false;
+    groups.push_back(favorites_group);
+    return groups;
+  }
+
+  groups.push_back(today_group);
+  groups.push_back(yesterday_group);
+  groups.push_back(older_group);
+  groups.push_back(favorites_group);
   return groups;
 }
 
@@ -276,9 +322,9 @@ class ClipboardWindow final : public QMainWindow {
     auto* button_row = new QHBoxLayout();
     button_row->setSpacing(8);
     auto_copy_button_ = new QPushButton("自动复制: 关", bottom_box);
-    copy_button_ = new QPushButton("复制当前", bottom_box);
+    copy_button_ = new QPushButton("复制选中", bottom_box);
     favorite_button_ = new QPushButton("加入收藏", bottom_box);
-    delete_button_ = new QPushButton("删除当前", bottom_box);
+    delete_button_ = new QPushButton("删除选中", bottom_box);
     favorites_only_button_ = new QPushButton("仅看收藏", bottom_box);
     more_button_ = new QToolButton(bottom_box);
     more_button_->setText("更多");
@@ -630,7 +676,7 @@ class ClipboardWindow final : public QMainWindow {
         visible_entries_.push_back(entry);
         auto* item = new QTreeWidgetItem(group_item);
         item->setData(0, Qt::UserRole, QVariant::fromValue<qlonglong>(entry.id));
-        item->setText(0, EntryTimeLabel(entry));
+        item->setText(0, EntryTimeLabel(entry, group.key));
         item->setText(1, QString("%1次").arg(entry.hit_count));
         const QString content_prefix = entry.favorite ? "★ " : "";
         item->setText(2, content_prefix + PreviewText(entry.content, kPreviewChars));
@@ -767,7 +813,12 @@ class ClipboardWindow final : public QMainWindow {
         !item->data(0, Qt::UserRole).isValid()) {
       return;
     }
-    item->setText(0, EntryTimeLabel(*entry));
+    QTreeWidgetItem* parent = item->parent();
+    const std::string group_key =
+        (parent != nullptr)
+            ? ToStdString(parent->data(0, Qt::UserRole + 1).toString())
+            : std::string{};
+    item->setText(0, EntryTimeLabel(*entry, group_key));
     item->setText(1, QString("%1次").arg(entry->hit_count));
     const QString prefix = entry->favorite ? "★ " : "";
     item->setText(2, prefix + PreviewText(entry->content, kPreviewChars));
@@ -777,15 +828,9 @@ class ClipboardWindow final : public QMainWindow {
     if (group_item == nullptr) {
       return;
     }
-    const QString key = group_item->data(0, Qt::UserRole + 1).toString();
-    const QStringList parts = key.split('/');
-    if (parts.size() < 2) {
-      return;
-    }
-    group_item->setText(0, QString("%1 / %2  %3 条")
-                               .arg(parts[0])
-                               .arg(parts[1])
-                               .arg(group_item->childCount()));
+    const std::string key =
+        ToStdString(group_item->data(0, Qt::UserRole + 1).toString());
+    group_item->setText(0, GroupTitle(key, group_item->childCount()));
   }
 
   void RemoveCurrentItemInPlace() {
@@ -873,7 +918,7 @@ class ClipboardWindow final : public QMainWindow {
   void CopyCurrent() {
     const ClipboardEntry* entry = CurrentEntry();
     if (entry == nullptr) {
-      status_label_->setText("当前没有可复制的记录");
+      status_label_->setText("当前没有选中记录");
       return;
     }
     CopyText(ToQString(entry->content), "已复制原始内容");
@@ -953,11 +998,11 @@ class ClipboardWindow final : public QMainWindow {
   void DeleteSelected() {
     const ClipboardEntry* entry = CurrentEntry();
     if (entry == nullptr || !delete_entry_) {
-      status_label_->setText("当前没有可删除的记录");
+      status_label_->setText("当前没有选中记录");
       return;
     }
     const auto result = QMessageBox::question(
-        this, "删除记录", "确定要删除当前这条剪贴板记录吗？");
+        this, "删除记录", "确定要删除选中的剪贴板记录吗？");
     if (result != QMessageBox::Yes) {
       status_label_->setText("已取消删除");
       return;

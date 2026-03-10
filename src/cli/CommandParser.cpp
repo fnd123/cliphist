@@ -96,12 +96,14 @@ CommandOptions CommandParser::Parse(int argc, char** argv) const {
     out.type = CommandType::kDaemon;
   } else if (sub == "desktop") {
     out.type = CommandType::kDesktop;
+    out.limit = 10000;
   } else if (sub == "list") {
     out.type = CommandType::kList;
   } else if (sub == "stats") {
     out.type = CommandType::kStats;
   } else if (sub == "ui") {
     out.type = CommandType::kUi;
+    out.limit = 10000;
   } else if (sub == "help" || sub == "--help" || sub == "-h") {
     out.type = CommandType::kHelp;
     return out;
@@ -265,7 +267,12 @@ CommandOptions CommandParser::Parse(int argc, char** argv) const {
   }
 
   if (out.limit <= 0) {
-    out.limit = 20;
+    out.limit =
+        (out.type == CommandType::kUi || out.type == CommandType::kDesktop) ? 10000 : 20;
+  }
+  if ((out.type == CommandType::kUi || out.type == CommandType::kDesktop) &&
+      out.limit > 10000) {
+    out.limit = 10000;
   }
   if (out.offset < 0) {
     out.offset = 0;

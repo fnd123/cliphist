@@ -20,6 +20,31 @@ int main() {
 
   {
     char arg0[] = "cliphist";
+    char arg1[] = "ui";
+    char arg2[] = "--limit=50000";
+    char* argv[] = {arg0, arg1, arg2};
+
+    auto opts = parser.Parse(3, argv);
+    if (opts.type != cliphist::CommandType::kUi || opts.limit != 10000) {
+      std::cerr << "expected ui limit capped at 10000\n";
+      return 1;
+    }
+  }
+
+  {
+    char arg0[] = "cliphist";
+    char arg1[] = "ui";
+    char* argv[] = {arg0, arg1};
+
+    auto opts = parser.Parse(2, argv);
+    if (opts.type != cliphist::CommandType::kUi || opts.limit != 10000) {
+      std::cerr << "expected ui default limit 10000\n";
+      return 1;
+    }
+  }
+
+  {
+    char arg0[] = "cliphist";
     char arg1[] = "daemon";
     char arg2[] = "--selection=both";
     char arg3[] = "--max-items=321";
@@ -65,6 +90,18 @@ int main() {
     auto opts = parser.Parse(3, argv);
     if (opts.type != cliphist::CommandType::kDesktop || opts.max_items != 256) {
       std::cerr << "expected desktop command with max-items 256\n";
+      return 1;
+    }
+  }
+
+  {
+    char arg0[] = "cliphist";
+    char arg1[] = "desktop";
+    char* argv[] = {arg0, arg1};
+
+    auto opts = parser.Parse(2, argv);
+    if (opts.type != cliphist::CommandType::kDesktop || opts.limit != 10000) {
+      std::cerr << "expected desktop default limit 10000\n";
       return 1;
     }
   }

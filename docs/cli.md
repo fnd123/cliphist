@@ -17,7 +17,11 @@
   - Show filtered history entries, selectable sort order, or count-only result.
 - `cliphist ui [--limit N] [--db PATH]`
   - Open a desktop window showing history list with auto refresh (~1s).
-  - 时间列显示完整日期时间（含年份）。
+  - 默认显示上限 `10000` 条（可通过 `--limit` 调整，超过会自动截断为 `10000`）。
+  - 分组固定为：`今天`、`昨天`、`更久以前`、`收藏`。
+  - 默认仅展开 `今天` 分组。
+  - 标题格式：`今天 YYYY/MM/DD`、`昨天 YYYY/MM/DD`。
+  - 时间格式：`今天/昨天` 仅显示时分秒，`更久以前` 显示完整日期时间（含年份）。
   - UI actions:
     - `Up/Down/PageUp/PageDown`: select item.
     - `Enter/c`: copy selected item once.
