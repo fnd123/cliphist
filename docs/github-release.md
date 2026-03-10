@@ -7,7 +7,7 @@
 
 - `pull_request`：构建与测试（Linux + Windows），并上传安装包 artifacts。
 - 推送到 `main`：构建、测试、打包并自动创建 **nightly 预发布**（`prerelease`）。
-- 推送标签 `v*`（如 `v0.1.0`）：构建、测试、打包并自动创建 **正式 Release**。
+- 推送标签 `v*`（如 `v0.1.1`）：构建、测试、打包并自动创建 **正式 Release**。
 
 ## 发布步骤
 
@@ -21,8 +21,8 @@
 本地打标签并推送：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 4. 等待 Actions 工作流完成。

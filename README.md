@@ -63,6 +63,10 @@ cliphist stats --json
 cliphist ui --limit 200
 ```
 
+说明：
+- `ui` / `desktop` 默认历史显示上限为 `10000` 条（超过会自动截断）。
+- UI 分组为 `今天 YYYY/MM/DD`、`昨天 YYYY/MM/DD`、`更久以前`、`收藏`，默认仅展开 `今天`。
+
 ## 从源码构建
 
 ### Linux（默认启用 X11）
@@ -102,8 +106,8 @@ cpack --config build-win/CPackConfig.cmake -C Release
 发布示例：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 ## 项目结构
