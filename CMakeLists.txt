@@ -127,9 +127,31 @@ if(WIN32)
         OUTPUT_VARIABLE QT_PLUGINS_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
       )
+      execute_process(
+        COMMAND "${QT_QMAKE_EXECUTABLE}" -query QT_INSTALL_BINS
+        OUTPUT_VARIABLE QT_BIN_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
       if(EXISTS "${QT_PLUGINS_DIR}/platforms/qwindows.dll")
         install(FILES "${QT_PLUGINS_DIR}/platforms/qwindows.dll"
                 DESTINATION bin/platforms)
+      endif()
+      if(QT_BIN_DIR)
+        foreach(qt_dll Qt5Core.dll Qt5Gui.dll Qt5Widgets.dll)
+          if(EXISTS "${QT_BIN_DIR}/${qt_dll}")
+            install(FILES "${QT_BIN_DIR}/${qt_dll}" DESTINATION bin)
+          endif()
+        endforeach()
+        foreach(mingw_dll libstdc++-6.dll libgcc_s_seh-1.dll libwinpthread-1.dll)
+          if(EXISTS "${QT_BIN_DIR}/${mingw_dll}")
+            install(FILES "${QT_BIN_DIR}/${mingw_dll}" DESTINATION bin)
+          endif()
+        endforeach()
+        if(EXISTS "${QT_BIN_DIR}/windeployqt.exe")
+          install(CODE
+            "execute_process(COMMAND \"${QT_BIN_DIR}/windeployqt.exe\" --no-translations --compiler-runtime \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cliphist.exe\")"
+          )
+        endif()
       endif()
     endif()
   endif()
