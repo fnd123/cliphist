@@ -42,6 +42,22 @@ int main() {
 
   {
     char arg0[] = "cliphist";
+    char arg1[] = "daemon";
+    char* argv[] = {arg0, arg1};
+
+    auto opts = parser.Parse(2, argv);
+    if (opts.type != cliphist::CommandType::kDaemon) {
+      std::cerr << "expected daemon command\n";
+      return 1;
+    }
+    if (opts.max_items != 0) {
+      std::cerr << "expected default max-items to be unlimited(0)\n";
+      return 1;
+    }
+  }
+
+  {
+    char arg0[] = "cliphist";
     char arg1[] = "desktop";
     char arg2[] = "--max-items=256";
     char* argv[] = {arg0, arg1, arg2};

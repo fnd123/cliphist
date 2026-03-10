@@ -42,7 +42,7 @@ struct CommandOptions {
   bool count_only = false;
   SortField sort_field = SortField::kUpdatedAt;
   SortOrder sort_order = SortOrder::kDesc;
-  int max_items = 1000;
+  int max_items = 0;
   SelectionMode selection_mode = SelectionMode::kClipboard;
   std::string db_path;
   std::string error;

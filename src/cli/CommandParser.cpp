@@ -67,8 +67,8 @@ std::string DefaultDbPath() {
 std::string HelpText() {
 #if CLIPHIST_HAS_X11
   return "用法:\n"
-         "  cliphist daemon [--max-items N] [--selection clipboard|primary|both] [--db PATH]\n"
-         "  cliphist desktop [--max-items N] [--selection clipboard|primary|both] [--db PATH]\n"
+         "  cliphist daemon [--max-items N(0=不限)] [--selection clipboard|primary|both] [--db PATH]\n"
+         "  cliphist desktop [--max-items N(0=不限)] [--selection clipboard|primary|both] [--db PATH]\n"
          "  cliphist list [--limit N] [--offset N] [--contains TEXT] [--exact TEXT] [--since UNIX_TS] [--sort updated_at|created_at] [--order asc|desc] [--count-only] [--json] [--db PATH]\n"
          "  cliphist ui [--limit N] [--db PATH]\n"
          "  cliphist stats [--json] [--db PATH]\n";
@@ -270,8 +270,8 @@ CommandOptions CommandParser::Parse(int argc, char** argv) const {
   if (out.offset < 0) {
     out.offset = 0;
   }
-  if (out.max_items <= 0) {
-    out.max_items = 1000;
+  if (out.max_items < 0) {
+    out.max_items = 0;
   }
 
   return out;

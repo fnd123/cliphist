@@ -44,6 +44,9 @@ sudo apt install ./cliphist-<version>-Linux.deb
 # Linux: 启动监听
 cliphist daemon --max-items 1000 --selection clipboard
 
+# Linux: 默认无限保留（不传 --max-items 或传 0）
+cliphist daemon --selection clipboard
+
 # Linux: 一体化桌面会话（托盘 + UI + daemon）
 cliphist desktop
 

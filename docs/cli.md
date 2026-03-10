@@ -4,17 +4,20 @@
 
 - `cliphist daemon [--max-items N] [--selection clipboard|primary|both] [--db PATH]`
   - Run clipboard listener.
+  - `--max-items` 默认 `0`（不限条数）。
   - Linux X11 only.
   - Persistence:
     - SQLite history DB: path from `--db` (default `~/.local/share/cliphist/cliphist.db`).
     - File archive by date: `<db_dir>/archive/YYYY-MM-DD/HHMMSS[_N].txt`.
 - `cliphist desktop [--max-items N] [--selection clipboard|primary|both] [--db PATH]`
   - Run daemon + tray + UI session.
+  - `--max-items` 默认 `0`（不限条数）。
   - Linux X11 only.
 - `cliphist list [--limit N] [--offset N] [--contains TEXT] [--exact TEXT] [--since UNIX_TS] [--sort updated_at|created_at] [--order asc|desc] [--count-only] [--json] [--db PATH]`
   - Show filtered history entries, selectable sort order, or count-only result.
 - `cliphist ui [--limit N] [--db PATH]`
   - Open a desktop window showing history list with auto refresh (~1s).
+  - 时间列显示完整日期时间（含年份）。
   - UI actions:
     - `Up/Down/PageUp/PageDown`: select item.
     - `Enter/c`: copy selected item once.

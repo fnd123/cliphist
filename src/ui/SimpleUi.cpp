@@ -76,7 +76,7 @@ bool IsTodayLabel(const std::string& day_label) {
 }
 
 QString EntryTimeLabel(const ClipboardEntry& entry) {
-  return ToQString(FormatLocalTime(entry.updated_at));
+  return ToQString(FormatLocalDateTime(entry.updated_at));
 }
 
 struct UiGroup {
@@ -227,7 +227,7 @@ class ClipboardWindow final : public QMainWindow {
     tree_->header()->setSectionResizeMode(0, QHeaderView::Fixed);
     tree_->header()->setSectionResizeMode(1, QHeaderView::Fixed);
     tree_->header()->setSectionResizeMode(2, QHeaderView::Stretch);
-    tree_->setColumnWidth(0, 110);
+    tree_->setColumnWidth(0, 170);
     tree_->setColumnWidth(1, 72);
     splitter_->addWidget(tree_);
 
