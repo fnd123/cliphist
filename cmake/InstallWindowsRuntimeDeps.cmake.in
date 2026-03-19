@@ -1,0 +1,88 @@
+set(_cliphist_bin_dir "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin")
+set(_cliphist_executable "${_cliphist_bin_dir}/cliphist.exe")
+set(_cliphist_runtime_hint_dirs "@CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS@")
+set(_cliphist_windeployqt "@CLIPHIST_WINDEPLOYQT_EXECUTABLE@")
+set(_cliphist_platform_plugin_source "@CLIPHIST_WINDOWS_PLATFORM_PLUGIN@")
+
+if(NOT EXISTS "${_cliphist_executable}")
+  message(FATAL_ERROR "cliphist.exe was not installed to ${_cliphist_executable}")
+endif()
+
+if(_cliphist_platform_plugin_source AND EXISTS "${_cliphist_platform_plugin_source}")
+  file(MAKE_DIRECTORY "${_cliphist_bin_dir}/platforms")
+  file(INSTALL
+       DESTINATION "${_cliphist_bin_dir}/platforms"
+       TYPE SHARED_LIBRARY
+       FOLLOW_SYMLINK_CHAIN
+       FILES "${_cliphist_platform_plugin_source}")
+endif()
+
+if(_cliphist_windeployqt AND EXISTS "${_cliphist_windeployqt}")
+  execute_process(
+    COMMAND "${_cliphist_windeployqt}" --no-translations --compiler-runtime
+            "${_cliphist_executable}"
+    RESULT_VARIABLE _cliphist_windeployqt_result
+    OUTPUT_VARIABLE _cliphist_windeployqt_stdout
+    ERROR_VARIABLE _cliphist_windeployqt_stderr
+  )
+  if(NOT _cliphist_windeployqt_result EQUAL 0)
+    message(WARNING
+            "windeployqt failed with code ${_cliphist_windeployqt_result}\n"
+            "${_cliphist_windeployqt_stdout}\n${_cliphist_windeployqt_stderr}")
+  endif()
+endif()
+
+set(_cliphist_probe_libraries "")
+set(_cliphist_installed_platform_plugin "${_cliphist_bin_dir}/platforms/qwindows.dll")
+if(EXISTS "${_cliphist_installed_platform_plugin}")
+  list(APPEND _cliphist_probe_libraries "${_cliphist_installed_platform_plugin}")
+endif()
+
+set(_cliphist_runtime_dep_args
+    EXECUTABLES "${_cliphist_executable}"
+    RESOLVED_DEPENDENCIES_VAR _cliphist_resolved_dependencies
+    UNRESOLVED_DEPENDENCIES_VAR _cliphist_unresolved_dependencies
+    DIRECTORIES ${_cliphist_runtime_hint_dirs}
+    PRE_EXCLUDE_REGEXES
+      "^api-ms-win-.*"
+      "^ext-ms-.*"
+    POST_EXCLUDE_REGEXES
+      ".*[/\\\\][Ww][Ii][Nn][Dd][Oo][Ww][Ss][/\\\\].*"
+      ".*[/\\\\][Ss][Yy][Ss][Tt][Ee][Mm]32[/\\\\].*"
+      ".*[/\\\\][Ss][Yy][Ss][Ww][Oo][Ww]64[/\\\\].*")
+if(_cliphist_probe_libraries)
+  list(APPEND _cliphist_runtime_dep_args
+       LIBRARIES ${_cliphist_probe_libraries})
+endif()
+
+file(GET_RUNTIME_DEPENDENCIES ${_cliphist_runtime_dep_args})
+
+if(_cliphist_unresolved_dependencies)
+  list(REMOVE_DUPLICATES _cliphist_unresolved_dependencies)
+  message(WARNING
+          "Unresolved runtime dependencies while packaging cliphist: "
+          "${_cliphist_unresolved_dependencies}")
+endif()
+
+if(_cliphist_resolved_dependencies)
+  list(REMOVE_DUPLICATES _cliphist_resolved_dependencies)
+endif()
+
+foreach(_cliphist_dep IN LISTS _cliphist_resolved_dependencies)
+  if(NOT EXISTS "${_cliphist_dep}")
+    continue()
+  endif()
+
+  get_filename_component(_cliphist_dep_name "${_cliphist_dep}" NAME)
+  set(_cliphist_dest_dir "${_cliphist_bin_dir}")
+  if(_cliphist_dep_name STREQUAL "qwindows.dll")
+    set(_cliphist_dest_dir "${_cliphist_bin_dir}/platforms")
+    file(MAKE_DIRECTORY "${_cliphist_dest_dir}")
+  endif()
+
+  file(INSTALL
+       DESTINATION "${_cliphist_dest_dir}"
+       TYPE SHARED_LIBRARY
+       FOLLOW_SYMLINK_CHAIN
+       FILES "${_cliphist_dep}")
+endforeach()

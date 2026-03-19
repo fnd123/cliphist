@@ -66,4 +66,4 @@ Default generators on Windows:
 
 - `daemon` and `desktop` commands require Linux X11 and are disabled in Windows builds.
 - `list`, `stats`, and `ui` commands are available on Windows.
-- Packaging now looks up Qt runtime DLLs from the imported Qt targets and MinGW runtime DLLs from the active compiler directory, instead of assuming they live next to `qmake`.
+- Packaging now runs recursive runtime dependency collection against the installed `cliphist.exe`, so Qt/MinGW/SQLite and their transitive DLLs are gathered automatically instead of relying on a hand-maintained DLL list.

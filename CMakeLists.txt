@@ -147,12 +147,12 @@ if(WIN32)
   set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
   include(InstallRequiredSystemLibraries)
 
-  set(_cliphist_qt_bin_hints "")
+  set(CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS "")
   if(TARGET Qt5::qmake)
     get_target_property(QT_QMAKE_EXECUTABLE Qt5::qmake IMPORTED_LOCATION)
     if(QT_QMAKE_EXECUTABLE)
       get_filename_component(_cliphist_qt_qmake_dir "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
-      list(APPEND _cliphist_qt_bin_hints "${_cliphist_qt_qmake_dir}")
+      list(APPEND CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS "${_cliphist_qt_qmake_dir}")
       execute_process(
         COMMAND "${QT_QMAKE_EXECUTABLE}" -query QT_INSTALL_PLUGINS
         OUTPUT_VARIABLE QT_PLUGINS_DIR
@@ -161,41 +161,44 @@ if(WIN32)
     endif()
   endif()
 
-  foreach(_cliphist_qt_target Qt5::Core Qt5::Gui Qt5::Widgets)
-    cliphist_get_imported_location(_cliphist_qt_dll "${_cliphist_qt_target}")
-    if(_cliphist_qt_dll AND EXISTS "${_cliphist_qt_dll}")
-      get_filename_component(_cliphist_qt_bin_dir "${_cliphist_qt_dll}" DIRECTORY)
-      list(APPEND _cliphist_qt_bin_hints "${_cliphist_qt_bin_dir}")
-      install(FILES "${_cliphist_qt_dll}" DESTINATION bin)
+  foreach(_cliphist_runtime_target Qt5::Core Qt5::Gui Qt5::Widgets SQLite::SQLite3)
+    if(TARGET ${_cliphist_runtime_target})
+      cliphist_get_imported_location(_cliphist_runtime_dll "${_cliphist_runtime_target}")
+      if(_cliphist_runtime_dll AND EXISTS "${_cliphist_runtime_dll}")
+        get_filename_component(_cliphist_runtime_dir "${_cliphist_runtime_dll}" DIRECTORY)
+        list(APPEND CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS "${_cliphist_runtime_dir}")
+      endif()
     endif()
   endforeach()
-  list(REMOVE_DUPLICATES _cliphist_qt_bin_hints)
-
-  if(QT_PLUGINS_DIR AND EXISTS "${QT_PLUGINS_DIR}/platforms/qwindows.dll")
-    install(FILES "${QT_PLUGINS_DIR}/platforms/qwindows.dll"
-            DESTINATION bin/platforms)
-  endif()
 
   get_filename_component(_cliphist_compiler_bin_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
-  foreach(_cliphist_mingw_dll
-          libstdc++-6.dll
-          libgcc_s_seh-1.dll
-          libgcc_s_dw2-1.dll
-          libwinpthread-1.dll)
-    if(EXISTS "${_cliphist_compiler_bin_dir}/${_cliphist_mingw_dll}")
-      install(FILES "${_cliphist_compiler_bin_dir}/${_cliphist_mingw_dll}"
-              DESTINATION bin)
-    endif()
-  endforeach()
+  list(APPEND CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS "${_cliphist_compiler_bin_dir}")
+  list(REMOVE_DUPLICATES CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS)
 
   find_program(CLIPHIST_WINDEPLOYQT_EXECUTABLE
                NAMES windeployqt windeployqt.exe
-               HINTS ${_cliphist_qt_bin_hints})
-  if(CLIPHIST_WINDEPLOYQT_EXECUTABLE)
-    install(CODE
-      "execute_process(COMMAND \"${CLIPHIST_WINDEPLOYQT_EXECUTABLE}\" --no-translations --compiler-runtime \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cliphist.exe\")"
-    )
+               HINTS ${CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS})
+
+  set(CLIPHIST_WINDOWS_PLATFORM_PLUGIN "")
+  if(QT_PLUGINS_DIR AND EXISTS "${QT_PLUGINS_DIR}/platforms/qwindows.dll")
+    set(CLIPHIST_WINDOWS_PLATFORM_PLUGIN "${QT_PLUGINS_DIR}/platforms/qwindows.dll")
+  else()
+    find_file(CLIPHIST_WINDOWS_PLATFORM_PLUGIN
+              NAMES qwindows.dll
+              HINTS ${CLIPHIST_WINDOWS_RUNTIME_HINT_DIRS}
+              PATH_SUFFIXES
+                ../plugins/platforms
+                ../share/qt5/plugins/platforms
+                plugins/platforms
+                platforms)
   endif()
+
+  configure_file(
+    cmake/InstallWindowsRuntimeDeps.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/InstallWindowsRuntimeDeps.cmake
+    @ONLY
+  )
+  install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/InstallWindowsRuntimeDeps.cmake)
 endif()
 
 if(BUILD_TESTING)
