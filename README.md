@@ -80,10 +80,15 @@ ctest --test-dir build --output-on-failure
 ### Windows（禁用 X11）
 
 ```bash
-cmake -S . -B build-win -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCLIPHIST_ENABLE_X11=OFF
+cmake -S . -B build-win -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCLIPHIST_ENABLE_X11=OFF -DCMAKE_PREFIX_PATH=/mingw64
 cmake --build build-win
 ctest --test-dir build-win --output-on-failure
 ```
+
+说明：
+- MSYS2/MinGW 构建请在 `MSYS2 MinGW 64-bit` shell 里执行。
+- 如果用官方 Qt MSVC 包，请改为传入对应 Qt 安装前缀，例如 `-DCMAKE_PREFIX_PATH=C:/Qt/5.15.2/msvc2019_64`。
+- `Qt5Core/Qt5Gui/libstdc++-6/libgcc_s_seh-1` 找不到，通常是 Qt 与编译器工具链不匹配。
 
 ### 打包
 

@@ -13,7 +13,7 @@ int main() {
   e.updated_at = 123;
   e.hit_count = 1;
   e.favorite = true;
-  e.content = "hello";
+  e.content = std::string("he\"llo\n") + '\b' + '\x01';
   entries.push_back(e);
 
   cliphist::PrintFormatter f;
@@ -21,12 +21,12 @@ int main() {
   const std::string out_json = f.FormatListJson(entries);
 
   if (out.find("ID") == std::string::npos ||
-      out.find("hello") == std::string::npos) {
+      out.find("he\"llo") == std::string::npos) {
     std::cerr << "unexpected list output\n";
     return 1;
   }
   if (out_json.find("\"id\":1") == std::string::npos ||
-      out_json.find("\"content\":\"hello\"") == std::string::npos ||
+      out_json.find("\"content\":\"he\\\"llo\\n\\b\\u0001\"") == std::string::npos ||
       out_json.find("\"favorite\":true") == std::string::npos) {
     std::cerr << "unexpected json list output\n";
     return 1;

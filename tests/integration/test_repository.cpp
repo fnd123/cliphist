@@ -74,6 +74,11 @@ int main() {
     return 1;
   }
 
+  if (repo.SetFavorite(999999, true)) {
+    std::cerr << "set favorite should fail for missing row\n";
+    return 1;
+  }
+
   const auto fav_items = repo.List(10, 0);
   if (fav_items.empty() || !fav_items[0].favorite) {
     std::cerr << "favorite ordering failed\n";
@@ -139,8 +144,34 @@ int main() {
     return 1;
   }
 
+  if (!repo.UpdateContent(items[0].id, "abc updated", "h_abc_updated", 2500)) {
+    std::cerr << "update content failed\n";
+    return 1;
+  }
+
+  const auto updated_items = repo.List(10, 0);
+  if (updated_items.empty() || updated_items[0].content != "abc updated") {
+    std::cerr << "updated content not visible\n";
+    return 1;
+  }
+
+  if (repo.UpdateContent(999999, "missing", "h_missing", 2600)) {
+    std::cerr << "update content should fail for missing row\n";
+    return 1;
+  }
+
   if (repo.ClearAll(true) != 1 || repo.Count() != 1) {
     std::cerr << "clear non-favorites failed\n";
+    return 1;
+  }
+
+  if (repo.ClearAll(false) != 1 || repo.Count() != 0) {
+    std::cerr << "clear all failed\n";
+    return 1;
+  }
+
+  if (repo.ClearAll(false) != 0) {
+    std::cerr << "clear all on empty repo should report zero deletions\n";
     return 1;
   }
 

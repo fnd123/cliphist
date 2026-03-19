@@ -78,7 +78,7 @@ jobs:
 
       - name: Configure
         shell: msys2 {0}
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCLIPHIST_ENABLE_X11=OFF
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCLIPHIST_ENABLE_X11=OFF -DCMAKE_PREFIX_PATH=/mingw64
 
       - name: Build
         shell: msys2 {0}

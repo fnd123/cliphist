@@ -1,6 +1,7 @@
 #include "cli/PrintFormatter.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <iomanip>
 #include <sstream>
 
@@ -10,6 +11,7 @@ namespace {
 std::string ClipPreview(const std::string& s, std::size_t n = 80) {
   std::string out = s;
   std::replace(out.begin(), out.end(), '\n', ' ');
+  std::replace(out.begin(), out.end(), '\r', ' ');
   if (out.size() <= n) {
     return out;
   }
@@ -36,8 +38,21 @@ std::string JsonEscape(const std::string& s) {
       case '\t':
         out += "\\t";
         break;
+      case '\b':
+        out += "\\b";
+        break;
+      case '\f':
+        out += "\\f";
+        break;
       default:
-        out.push_back(static_cast<char>(c));
+        if (c < 0x20U) {
+          std::ostringstream escape;
+          escape << "\\u" << std::hex << std::setw(4) << std::setfill('0')
+                 << static_cast<int>(c);
+          out += escape.str();
+        } else {
+          out.push_back(static_cast<char>(c));
+        }
         break;
     }
   }

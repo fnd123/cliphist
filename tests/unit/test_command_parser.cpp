@@ -169,6 +169,33 @@ int main() {
   {
     char arg0[] = "cliphist";
     char arg1[] = "list";
+    char arg2[] = "--limit";
+    char* argv[] = {arg0, arg1, arg2};
+
+    auto opts = parser.Parse(3, argv);
+    if (opts.type != cliphist::CommandType::kInvalid ||
+        opts.error.find("--limit") == std::string::npos) {
+      std::cerr << "expected invalid command for missing limit value\n";
+      return 1;
+    }
+  }
+
+  {
+    char arg0[] = "cliphist";
+    char arg1[] = "list";
+    char arg2[] = "--since=9223372036854775808";
+    char* argv[] = {arg0, arg1, arg2};
+
+    auto opts = parser.Parse(3, argv);
+    if (opts.type != cliphist::CommandType::kInvalid) {
+      std::cerr << "expected invalid command for overflow since\n";
+      return 1;
+    }
+  }
+
+  {
+    char arg0[] = "cliphist";
+    char arg1[] = "list";
     char arg2[] = "--since=not_number";
     char* argv[] = {arg0, arg1, arg2};
 

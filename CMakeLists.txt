@@ -15,9 +15,21 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 option(CLIPHIST_ENABLE_X11 "Enable X11 clipboard/tray integration" ${CLIPHIST_ENABLE_X11_DEFAULT})
 
+if(WIN32)
+  foreach(_cliphist_prefix_hint
+          "$ENV{Qt5_DIR}"
+          "$ENV{QTDIR}"
+          "$ENV{MSYSTEM_PREFIX}"
+          "$ENV{MINGW_PREFIX}")
+    if(_cliphist_prefix_hint)
+      list(APPEND CMAKE_PREFIX_PATH "${_cliphist_prefix_hint}")
+    endif()
+  endforeach()
+endif()
+
 find_package(SQLite3 REQUIRED)
 find_package(Threads REQUIRED)
-find_package(Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
 if(CLIPHIST_ENABLE_X11)
   find_package(X11 REQUIRED)
   find_package(PkgConfig REQUIRED)
@@ -82,6 +94,8 @@ target_link_libraries(cliphist_lib
   PUBLIC
     SQLite::SQLite3
     Threads::Threads
+    Qt5::Core
+    Qt5::Gui
     Qt5::Widgets
 )
 
@@ -115,45 +129,72 @@ if(CLIPHIST_ENABLE_X11)
 endif()
 
 if(WIN32)
+  function(cliphist_get_imported_location out_var target_name)
+    set(_cliphist_location "")
+    foreach(_cliphist_config RELEASE RELWITHDEBINFO MINSIZEREL DEBUG)
+      if(NOT _cliphist_location)
+        get_target_property(_cliphist_location ${target_name}
+                            IMPORTED_LOCATION_${_cliphist_config})
+      endif()
+    endforeach()
+    if(NOT _cliphist_location)
+      get_target_property(_cliphist_location ${target_name} IMPORTED_LOCATION)
+    endif()
+    set(${out_var} "${_cliphist_location}" PARENT_SCOPE)
+  endfunction()
+
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
   set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
   include(InstallRequiredSystemLibraries)
 
+  set(_cliphist_qt_bin_hints "")
   if(TARGET Qt5::qmake)
     get_target_property(QT_QMAKE_EXECUTABLE Qt5::qmake IMPORTED_LOCATION)
     if(QT_QMAKE_EXECUTABLE)
+      get_filename_component(_cliphist_qt_qmake_dir "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
+      list(APPEND _cliphist_qt_bin_hints "${_cliphist_qt_qmake_dir}")
       execute_process(
         COMMAND "${QT_QMAKE_EXECUTABLE}" -query QT_INSTALL_PLUGINS
         OUTPUT_VARIABLE QT_PLUGINS_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
       )
-      execute_process(
-        COMMAND "${QT_QMAKE_EXECUTABLE}" -query QT_INSTALL_BINS
-        OUTPUT_VARIABLE QT_BIN_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-      )
-      if(EXISTS "${QT_PLUGINS_DIR}/platforms/qwindows.dll")
-        install(FILES "${QT_PLUGINS_DIR}/platforms/qwindows.dll"
-                DESTINATION bin/platforms)
-      endif()
-      if(QT_BIN_DIR)
-        foreach(qt_dll Qt5Core.dll Qt5Gui.dll Qt5Widgets.dll)
-          if(EXISTS "${QT_BIN_DIR}/${qt_dll}")
-            install(FILES "${QT_BIN_DIR}/${qt_dll}" DESTINATION bin)
-          endif()
-        endforeach()
-        foreach(mingw_dll libstdc++-6.dll libgcc_s_seh-1.dll libwinpthread-1.dll)
-          if(EXISTS "${QT_BIN_DIR}/${mingw_dll}")
-            install(FILES "${QT_BIN_DIR}/${mingw_dll}" DESTINATION bin)
-          endif()
-        endforeach()
-        if(EXISTS "${QT_BIN_DIR}/windeployqt.exe")
-          install(CODE
-            "execute_process(COMMAND \"${QT_BIN_DIR}/windeployqt.exe\" --no-translations --compiler-runtime \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cliphist.exe\")"
-          )
-        endif()
-      endif()
     endif()
+  endif()
+
+  foreach(_cliphist_qt_target Qt5::Core Qt5::Gui Qt5::Widgets)
+    cliphist_get_imported_location(_cliphist_qt_dll "${_cliphist_qt_target}")
+    if(_cliphist_qt_dll AND EXISTS "${_cliphist_qt_dll}")
+      get_filename_component(_cliphist_qt_bin_dir "${_cliphist_qt_dll}" DIRECTORY)
+      list(APPEND _cliphist_qt_bin_hints "${_cliphist_qt_bin_dir}")
+      install(FILES "${_cliphist_qt_dll}" DESTINATION bin)
+    endif()
+  endforeach()
+  list(REMOVE_DUPLICATES _cliphist_qt_bin_hints)
+
+  if(QT_PLUGINS_DIR AND EXISTS "${QT_PLUGINS_DIR}/platforms/qwindows.dll")
+    install(FILES "${QT_PLUGINS_DIR}/platforms/qwindows.dll"
+            DESTINATION bin/platforms)
+  endif()
+
+  get_filename_component(_cliphist_compiler_bin_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+  foreach(_cliphist_mingw_dll
+          libstdc++-6.dll
+          libgcc_s_seh-1.dll
+          libgcc_s_dw2-1.dll
+          libwinpthread-1.dll)
+    if(EXISTS "${_cliphist_compiler_bin_dir}/${_cliphist_mingw_dll}")
+      install(FILES "${_cliphist_compiler_bin_dir}/${_cliphist_mingw_dll}"
+              DESTINATION bin)
+    endif()
+  endforeach()
+
+  find_program(CLIPHIST_WINDEPLOYQT_EXECUTABLE
+               NAMES windeployqt windeployqt.exe
+               HINTS ${_cliphist_qt_bin_hints})
+  if(CLIPHIST_WINDEPLOYQT_EXECUTABLE)
+    install(CODE
+      "execute_process(COMMAND \"${CLIPHIST_WINDEPLOYQT_EXECUTABLE}\" --no-translations --compiler-runtime \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cliphist.exe\")"
+    )
   endif()
 endif()
 

@@ -153,8 +153,9 @@ bool HistoryRepository::SetFavorite(std::int64_t id, bool favorite) {
   sqlite3_bind_int(stmt, 1, favorite ? 1 : 0);
   sqlite3_bind_int64(stmt, 2, id);
   const int rc = sqlite3_step(stmt);
+  const int changes = sqlite3_changes(db_.Handle());
   sqlite3_finalize(stmt);
-  return rc == SQLITE_DONE;
+  return rc == SQLITE_DONE && changes > 0;
 }
 
 bool HistoryRepository::DeleteById(std::int64_t id) {
@@ -191,8 +192,9 @@ bool HistoryRepository::UpdateContent(std::int64_t id, const std::string& conten
   sqlite3_bind_int64(stmt, 3, updated_at);
   sqlite3_bind_int64(stmt, 4, id);
   const int rc = sqlite3_step(stmt);
+  const int changes = sqlite3_changes(db_.Handle());
   sqlite3_finalize(stmt);
-  return rc == SQLITE_DONE;
+  return rc == SQLITE_DONE && changes > 0;
 }
 
 int HistoryRepository::ClearAll(bool keep_favorites) {
@@ -201,12 +203,12 @@ int HistoryRepository::ClearAll(bool keep_favorites) {
                      : "DELETE FROM clipboard_history;";
   sqlite3_stmt* stmt = nullptr;
   if (sqlite3_prepare_v2(db_.Handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) {
-    return 0;
+    return -1;
   }
   const int rc = sqlite3_step(stmt);
   const int changes = sqlite3_changes(db_.Handle());
   sqlite3_finalize(stmt);
-  return (rc == SQLITE_DONE) ? changes : 0;
+  return (rc == SQLITE_DONE) ? changes : -1;
 }
 
 int HistoryRepository::EnforceMaxItems(int max_items) {

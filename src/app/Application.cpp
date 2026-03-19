@@ -132,7 +132,7 @@ int Application::Run(const CommandOptions& options) {
           },
           [&options]() { return TogglePausedState(options.db_path); },
           [&options]() { return ReadPausedState(options.db_path); },
-          [&repo]() { return repo.ClearAll(false) >= 0; },
+          [&repo]() { return repo.ClearAll(false) != -1; },
           [&repo](std::int64_t id) { return repo.DeleteById(id); },
           [&repo, &formatter, &options, list_options](bool json) {
             return ExportEntries(repo.List(list_options), json, formatter, options.db_path);
