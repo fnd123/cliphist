@@ -67,3 +67,4 @@ Default generators on Windows:
 - Windows build now supports `daemon`, `desktop`, `ui`, `list`, and `stats`.
 - `desktop` uses the Qt5 tray + clipboard runtime and no-arg launch defaults to `desktop`.
 - Packaging now runs recursive runtime dependency collection against the installed `cliphist.exe`, so Qt/MinGW/SQLite and their transitive DLLs are gathered automatically instead of relying on a hand-maintained DLL list.
+- Runtime logs are written to `<db_dir>/logs/cliphist.log`; by default this is `%LOCALAPPDATA%/cliphist/logs/cliphist.log`.

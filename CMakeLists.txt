@@ -55,6 +55,7 @@ set(CLIPHIST_APP_SOURCES
   src/ui/SimpleUi.cpp
   src/util/ArchiveStore.cpp
   src/util/Hash.cpp
+  src/util/Logger.cpp
   src/util/Time.cpp
 )
 

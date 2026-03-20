@@ -12,6 +12,7 @@
 #include "db/HistoryRepository.hpp"
 #include "ui/SimpleUi.hpp"
 #include "util/Hash.hpp"
+#include "util/Logger.hpp"
 
 namespace cliphist {
 
@@ -61,12 +62,15 @@ std::string ExportEntries(const std::vector<ClipboardEntry>& entries, bool json,
 }  // namespace
 
 int Application::Run(const CommandOptions& options) {
+  LogInfo("Application::Run command=" + std::to_string(static_cast<int>(options.type)));
   Database db;
   if (!db.Open(options.db_path)) {
+    LogError("db open failed: " + options.db_path);
     std::cerr << "无法打开数据库: " << options.db_path << "\n";
     return 2;
   }
   if (!db.InitSchema()) {
+    LogError("schema init failed: " + db.LastError());
     std::cerr << "初始化数据库结构失败: " << db.LastError() << "\n";
     return 2;
   }
@@ -112,10 +116,12 @@ int Application::Run(const CommandOptions& options) {
                            []() { return false; });
     }
     case CommandType::kDesktop: {
+      LogInfo("enter desktop mode");
       DesktopSession session;
       return session.Run(options);
     }
     case CommandType::kUi: {
+      LogInfo("enter ui mode");
       ListOptions list_options;
       list_options.limit = options.limit;
       list_options.offset = options.offset;

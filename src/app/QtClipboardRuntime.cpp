@@ -29,6 +29,7 @@
 #include "db/Database.hpp"
 #include "db/HistoryRepository.hpp"
 #include "util/ArchiveStore.hpp"
+#include "util/Logger.hpp"
 #include "util/Time.hpp"
 
 namespace cliphist {
@@ -53,10 +54,12 @@ bool TogglePausedState(const std::string& db_path) {
 
 int OpenDatabase(const std::string& db_path, Database* db) {
   if (!db->Open(db_path)) {
+    LogError("Qt runtime db open failed: " + db_path);
     std::cerr << "无法打开数据库: " << db_path << "\n";
     return 2;
   }
   if (!db->InitSchema()) {
+    LogError("Qt runtime schema init failed: " + db->LastError());
     std::cerr << "初始化数据库结构失败: " << db->LastError() << "\n";
     return 2;
   }
@@ -182,10 +185,12 @@ class QtClipboardMonitor : public QObject {
   bool Start() {
     clipboard_ = QGuiApplication::clipboard();
     if (clipboard_ == nullptr) {
+      LogError("QGuiApplication::clipboard returned null");
       return false;
     }
 
     BackfillArchiveIfNeeded(repo_, options_.db_path, &archive_store_);
+    LogInfo("clipboard monitor started");
     QObject::connect(clipboard_, &QClipboard::dataChanged,
                      [this]() { HandleClipboardChanged(); });
     return true;
@@ -208,6 +213,7 @@ class QtClipboardMonitor : public QObject {
     const auto now = UnixTimeSeconds();
     const auto hash = dedup_.ComputeHash(text);
     if (!repo_.UpsertByContentHash(text, hash, now)) {
+      LogError("clipboard upsert failed");
       std::cerr << "写入剪贴板记录失败\n";
       return;
     }
@@ -242,11 +248,13 @@ int RunQtAppLoop(const std::function<void(QApplication&)>& setup_app) {
 int RunQtClipboardDaemon(const CommandOptions& options, HistoryRepository& repo,
                          const std::function<bool()>& stop_requested,
                          const std::function<bool()>& paused_requested) {
+  LogInfo("RunQtClipboardDaemon start");
   return RunQtAppLoop([&](QApplication& app) {
     app.setQuitOnLastWindowClosed(false);
 
     auto* monitor = new QtClipboardMonitor(options, repo, paused_requested);
     if (!monitor->Start()) {
+      LogError("Qt clipboard daemon monitor start failed");
       std::cerr << "无法初始化 Qt 剪贴板监听器\n";
       QTimer::singleShot(0, &app, [&app]() { app.exit(3); });
       return;
@@ -265,6 +273,7 @@ int RunQtClipboardDaemon(const CommandOptions& options, HistoryRepository& repo,
 }
 
 int RunQtDesktopSession(const CommandOptions& options) {
+  LogInfo("RunQtDesktopSession start");
   Database db;
   const int open_rc = OpenDatabase(options.db_path, &db);
   if (open_rc != 0) {
@@ -278,6 +287,7 @@ int RunQtDesktopSession(const CommandOptions& options) {
     auto* monitor = new QtClipboardMonitor(
         options, repo, [&options]() { return ReadPausedState(options.db_path); });
     if (!monitor->Start()) {
+      LogError("Qt desktop monitor start failed");
       std::cerr << "无法初始化 Qt 剪贴板监听器\n";
       QTimer::singleShot(0, &app, [&app]() { app.exit(3); });
       return;
@@ -293,13 +303,17 @@ int RunQtDesktopSession(const CommandOptions& options) {
 
     auto launch_or_focus_ui = [ui_process]() {
       if (ui_process->state() == QProcess::Running) {
+        LogInfo("ui process already running; focusing existing window");
 #ifdef _WIN32
         FocusProcessWindow(ui_process->processId());
 #endif
         return;
       }
+      LogInfo("starting ui child process");
       ui_process->start();
       if (!ui_process->waitForStarted(3000)) {
+        LogError("ui child process failed to start: " +
+                 ui_process->errorString().toStdString());
         std::cerr << "启动中文界面失败\n";
       }
     };
@@ -312,13 +326,17 @@ int RunQtDesktopSession(const CommandOptions& options) {
       QObject::connect(open_action, &QAction::triggered, tray_menu,
                        [ui_process]() {
                          if (ui_process->state() == QProcess::Running) {
+                           LogInfo("tray open action focusing running ui");
 #ifdef _WIN32
                            FocusProcessWindow(ui_process->processId());
 #endif
                            return;
                          }
+                         LogInfo("tray open action starting ui");
                          ui_process->start();
                          if (!ui_process->waitForStarted(3000)) {
+                           LogError("tray open failed to start ui: " +
+                                    ui_process->errorString().toStdString());
                            std::cerr << "启动中文界面失败\n";
                          }
                        });
@@ -370,6 +388,7 @@ int RunQtDesktopSession(const CommandOptions& options) {
     }
     QSystemTrayIcon* tray = nullptr;
     if (QSystemTrayIcon::isSystemTrayAvailable()) {
+      LogInfo("system tray available");
       tray = new QSystemTrayIcon(tray_icon, &app);
       tray->setToolTip("剪贴板历史");
       QObject::connect(tray_menu, &QMenu::aboutToShow, tray_menu, rebuild_menu);
@@ -382,9 +401,12 @@ int RunQtDesktopSession(const CommandOptions& options) {
                        });
       tray->setContextMenu(tray_menu);
       tray->show();
+    } else {
+      LogError("system tray unavailable; continuing without tray icon");
     }
 
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&]() {
+      LogInfo("Qt desktop session quitting");
       if (tray != nullptr) {
         tray->hide();
       }
