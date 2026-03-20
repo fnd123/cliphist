@@ -5,6 +5,19 @@
 int main() {
   cliphist::CommandParser parser;
 
+#ifdef _WIN32
+  {
+    char arg0[] = "cliphist";
+    char* argv[] = {arg0};
+
+    auto opts = parser.Parse(1, argv);
+    if (opts.type != cliphist::CommandType::kDesktop || opts.limit != 10000) {
+      std::cerr << "expected no-arg launch to default to desktop on Windows\n";
+      return 1;
+    }
+  }
+#endif
+
   {
     char arg0[] = "cliphist";
     char arg1[] = "ui";

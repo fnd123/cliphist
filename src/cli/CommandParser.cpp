@@ -79,6 +79,15 @@ std::string HelpText() {
          "  cliphist list [--limit N] [--offset N] [--contains TEXT] [--exact TEXT] [--since UNIX_TS] [--sort updated_at|created_at] [--order asc|desc] [--count-only] [--json] [--db PATH]\n"
          "  cliphist ui [--limit N] [--db PATH]\n"
          "  cliphist stats [--json] [--db PATH]\n";
+#elif defined(_WIN32)
+  return "用法:\n"
+         "  cliphist daemon [--max-items N(0=不限)] [--db PATH]\n"
+         "  cliphist desktop [--max-items N(0=不限)] [--db PATH]\n"
+         "  cliphist list [--limit N] [--offset N] [--contains TEXT] [--exact TEXT] [--since UNIX_TS] [--sort updated_at|created_at] [--order asc|desc] [--count-only] [--json] [--db PATH]\n"
+         "  cliphist ui [--limit N] [--db PATH]\n"
+         "  cliphist stats [--json] [--db PATH]\n"
+         "说明:\n"
+         "  Windows 版本基于 Qt5 剪贴板与系统托盘实现，无参数启动默认进入 desktop 模式。\n";
 #else
   return "用法:\n"
          "  cliphist list [--limit N] [--offset N] [--contains TEXT] [--exact TEXT] [--since UNIX_TS] [--sort updated_at|created_at] [--order asc|desc] [--count-only] [--json] [--db PATH]\n"
@@ -94,7 +103,12 @@ CommandOptions CommandParser::Parse(int argc, char** argv) const {
   out.db_path = DefaultDbPath();
 
   if (argc < 2) {
+#ifdef _WIN32
+    out.type = CommandType::kDesktop;
+    out.limit = 10000;
+#else
     out.type = CommandType::kHelp;
+#endif
     return out;
   }
 

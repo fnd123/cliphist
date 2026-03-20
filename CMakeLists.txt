@@ -45,6 +45,7 @@ configure_file(packaging/cliphist.desktop.in
 
 set(CLIPHIST_APP_SOURCES
   src/app/Application.cpp
+  src/app/QtClipboardRuntime.cpp
   src/db/Database.cpp
   src/db/HistoryRepository.cpp
   src/core/Deduplicator.cpp

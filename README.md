@@ -16,9 +16,11 @@
 | 平台 | 支持命令 |
 | --- | --- |
 | Linux（X11 构建） | `daemon` / `desktop` / `ui` / `list` / `stats` |
-| Windows（非 X11 构建） | `ui` / `list` / `stats` |
+| Windows（Qt5 构建） | `daemon` / `desktop` / `ui` / `list` / `stats` |
 
-说明：`daemon`、`desktop` 依赖 Linux X11，Windows 构建中会禁用。
+说明：
+- Windows 版本基于 Qt5 剪贴板与系统托盘实现，默认监听系统剪贴板。
+- Windows 下直接双击启动或无参数运行时，会默认进入 `desktop` 模式。
 
 ## 安装
 
@@ -50,6 +52,9 @@ cliphist daemon --selection clipboard
 # Linux: 一体化桌面会话（托盘 + UI + daemon）
 cliphist desktop
 
+# Windows: 无参数默认进入 desktop，也可显式启动
+cliphist desktop
+
 # 通用: 查看历史
 cliphist list --limit 50
 
@@ -66,6 +71,7 @@ cliphist ui --limit 200
 说明：
 - `ui` / `desktop` 默认历史显示上限为 `10000` 条（超过会自动截断）。
 - UI 分组为 `今天 YYYY/MM/DD`、`昨天 YYYY/MM/DD`、`更久以前`、`收藏`，默认仅展开 `今天`。
+- Windows `desktop` 模式会同时启动 Qt 托盘和剪贴板监听。
 
 ## 从源码构建
 
@@ -77,7 +83,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-### Windows（禁用 X11）
+### Windows（Qt5 构建）
 
 ```bash
 cmake -S . -B build-win -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCLIPHIST_ENABLE_X11=OFF -DCMAKE_PREFIX_PATH=/mingw64
