@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdlib>
 
 #include <QApplication>
 #include <QPixmap>
@@ -6,6 +7,14 @@
 #include "ui/AppIcon.hpp"
 
 int main(int argc, char** argv) {
+#if defined(__linux__)
+  if (std::getenv("QT_QPA_PLATFORM") == nullptr &&
+      std::getenv("DISPLAY") == nullptr &&
+      std::getenv("WAYLAND_DISPLAY") == nullptr) {
+    qputenv("QT_QPA_PLATFORM", "offscreen");
+  }
+#endif
+
   QApplication app(argc, argv);
 
   const QIcon icon = cliphist::CreateCliphistIcon();
