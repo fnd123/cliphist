@@ -10,15 +10,18 @@
 namespace {
 std::string TempDbPath() {
   const auto base = std::chrono::steady_clock::now().time_since_epoch().count();
-  const std::filesystem::path tmp_dir = std::filesystem::temp_directory_path();
+  std::filesystem::path tmp_dir = std::filesystem::temp_directory_path();
+#ifdef _WIN32
+  tmp_dir /= std::filesystem::u8path(u8"cliphist_utf8_中文");
+#endif
   for (int i = 0; i < 64; ++i) {
     const auto candidate =
         tmp_dir / ("cliphist_repo_" + std::to_string(base + i) + ".db");
     if (!std::filesystem::exists(candidate)) {
-      return candidate.string();
+      return candidate.u8string();
     }
   }
-  return (tmp_dir / "cliphist_repo_fallback.db").string();
+  return (tmp_dir / "cliphist_repo_fallback.db").u8string();
 }
 }  // namespace
 
@@ -175,6 +178,7 @@ int main() {
     return 1;
   }
 
-  std::remove(db_path.c_str());
+  std::error_code ec;
+  std::filesystem::remove(std::filesystem::u8path(db_path), ec);
   return 0;
 }

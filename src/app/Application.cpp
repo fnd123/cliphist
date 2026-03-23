@@ -13,6 +13,7 @@
 #include "ui/SimpleUi.hpp"
 #include "util/Hash.hpp"
 #include "util/Logger.hpp"
+#include "util/Path.hpp"
 
 namespace cliphist {
 
@@ -22,7 +23,7 @@ volatile std::sig_atomic_t g_stop = 0;
 void SignalHandler(int) { g_stop = 1; }
 
 std::filesystem::path PauseStatePath(const std::string& db_path) {
-  return std::filesystem::path(db_path).parent_path() / "pause.state";
+  return FsPathFromUtf8(db_path).parent_path() / "pause.state";
 }
 
 bool ReadPausedState(const std::string& db_path) {
@@ -42,7 +43,7 @@ std::string ExportEntries(const std::vector<ClipboardEntry>& entries, bool json,
                           const PrintFormatter& formatter,
                           const std::string& db_path) {
   const std::filesystem::path dir =
-      std::filesystem::path(db_path).parent_path() / "exports";
+      FsPathFromUtf8(db_path).parent_path() / "exports";
   std::error_code ec;
   std::filesystem::create_directories(dir, ec);
   if (ec) {
@@ -57,7 +58,7 @@ std::string ExportEntries(const std::vector<ClipboardEntry>& entries, bool json,
     return {};
   }
   out << (json ? formatter.FormatListJson(entries) : formatter.FormatList(entries));
-  return path.string();
+  return Utf8FromFsPath(path);
 }
 }  // namespace
 

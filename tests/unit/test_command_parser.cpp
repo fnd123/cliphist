@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+#include <vector>
 
 #include "cli/CommandParser.hpp"
 
@@ -257,6 +259,32 @@ int main() {
       return 1;
     }
   }
+
+  {
+    const std::string db_path = cliphist::DefaultDbPath();
+    if (db_path.empty()) {
+      std::cerr << "expected non-empty default db path\n";
+      return 1;
+    }
+  }
+
+#ifdef _WIN32
+  {
+    char arg0[] = "cliphist";
+    char arg1[] = "list";
+    std::string db_arg = std::string("--db=") + u8"H:/cliphist/中文/cliphist.db";
+    std::vector<char> db_arg_buf(db_arg.begin(), db_arg.end());
+    db_arg_buf.push_back('\0');
+    char* argv[] = {arg0, arg1, db_arg_buf.data()};
+
+    auto opts = parser.Parse(3, argv);
+    if (opts.type != cliphist::CommandType::kList ||
+        opts.db_path.find(u8"中文") == std::string::npos) {
+      std::cerr << "expected utf-8 db path to be preserved on Windows\n";
+      return 1;
+    }
+  }
+#endif
 
   return 0;
 }

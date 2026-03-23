@@ -5,8 +5,9 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include <filesystem>
 #include <string>
+
+#include "util/Path.hpp"
 
 namespace cliphist {
 
@@ -47,14 +48,14 @@ bool MissingValue(int index, int argc) { return index + 1 >= argc; }
 
 std::string DefaultDbPath() {
 #ifdef _WIN32
-  const char* local_app_data = std::getenv("LOCALAPPDATA");
-  if (local_app_data != nullptr && *local_app_data != '\0') {
-    return std::string(local_app_data) + "/cliphist/cliphist.db";
+  const std::string local_app_data = WindowsLocalAppDataUtf8();
+  if (!local_app_data.empty()) {
+    return local_app_data + "/cliphist/cliphist.db";
   }
 
-  const char* app_data = std::getenv("APPDATA");
-  if (app_data != nullptr && *app_data != '\0') {
-    return std::string(app_data) + "/cliphist/cliphist.db";
+  const std::string app_data = WindowsRoamingAppDataUtf8();
+  if (!app_data.empty()) {
+    return app_data + "/cliphist/cliphist.db";
   }
 #else
   const char* xdg_data = std::getenv("XDG_DATA_HOME");
@@ -68,7 +69,7 @@ std::string DefaultDbPath() {
     return std::string(home) + "/.local/share/cliphist/cliphist.db";
   }
 
-  return (std::filesystem::temp_directory_path() / "cliphist.db").string();
+  return TempDirectoryUtf8() + "/cliphist.db";
 }
 
 std::string HelpText() {

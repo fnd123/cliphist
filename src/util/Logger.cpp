@@ -13,6 +13,7 @@
 #include <QString>
 #include <QtGlobal>
 
+#include "util/Path.hpp"
 #include "util/Time.hpp"
 
 namespace cliphist {
@@ -140,13 +141,13 @@ bool InitializeLogging(const std::string& db_path) {
 
   std::error_code ec;
   const std::filesystem::path log_dir =
-      std::filesystem::path(db_path).parent_path() / "logs";
+      FsPathFromUtf8(db_path).parent_path() / "logs";
   std::filesystem::create_directories(log_dir, ec);
   if (ec) {
     return false;
   }
 
-  g_log_path = (log_dir / "cliphist.log").string();
+  g_log_path = Utf8FromFsPath(log_dir / "cliphist.log");
   g_log_file.open(g_log_path, std::ios::out | std::ios::app);
   if (!g_log_file.is_open()) {
     g_log_path.clear();

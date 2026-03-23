@@ -23,6 +23,7 @@
 #include "cli/CommandParser.hpp"
 #include "db/Database.hpp"
 #include "db/HistoryRepository.hpp"
+#include "util/Path.hpp"
 #include "x11/StatusTrayIcon.hpp"
 
 extern char** environ;
@@ -58,7 +59,7 @@ std::vector<ClipboardEntry> LoadRecentEntries(const std::string& db_path) {
 }
 
 std::filesystem::path PauseStatePath(const std::string& db_path) {
-  return std::filesystem::path(db_path).parent_path() / "pause.state";
+  return FsPathFromUtf8(db_path).parent_path() / "pause.state";
 }
 
 bool ReadPausedState(const std::string& db_path) {

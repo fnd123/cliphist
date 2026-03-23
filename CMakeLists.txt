@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(cliphist VERSION 0.1.1 LANGUAGES CXX)
+project(cliphist VERSION 0.2.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -52,10 +52,12 @@ set(CLIPHIST_APP_SOURCES
   src/core/RetentionPolicy.cpp
   src/cli/CommandParser.cpp
   src/cli/PrintFormatter.cpp
+  src/ui/AppIcon.cpp
   src/ui/SimpleUi.cpp
   src/util/ArchiveStore.cpp
   src/util/Hash.cpp
   src/util/Logger.cpp
+  src/util/Path.cpp
   src/util/Time.cpp
 )
 
@@ -117,10 +119,27 @@ endif()
 target_compile_options(cliphist_lib PRIVATE ${PROJECT_WARNINGS})
 
 add_executable(cliphist src/main.cpp)
+target_sources(cliphist PRIVATE src/app/ProgramEntry.cpp)
+if(WIN32)
+  target_sources(cliphist PRIVATE src/app/cliphist.rc)
+endif()
 target_link_libraries(cliphist PRIVATE cliphist_lib)
 target_compile_options(cliphist PRIVATE ${PROJECT_WARNINGS})
 
+if(WIN32)
+  add_executable(cliphist-gui WIN32 src/gui_main.cpp)
+  target_sources(cliphist-gui PRIVATE src/app/ProgramEntry.cpp src/app/cliphist.rc)
+  target_link_libraries(cliphist-gui PRIVATE cliphist_lib)
+  target_compile_options(cliphist-gui PRIVATE ${PROJECT_WARNINGS})
+endif()
+
 install(TARGETS cliphist RUNTIME DESTINATION bin)
+if(WIN32)
+  install(TARGETS cliphist-gui RUNTIME DESTINATION bin)
+endif()
+if(WIN32)
+  install(FILES assets/cliphist.ico DESTINATION .)
+endif()
 
 if(CLIPHIST_ENABLE_X11)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cliphist.desktop
@@ -219,11 +238,15 @@ if(BUILD_TESTING)
   add_executable(test_command_parser tests/unit/test_command_parser.cpp)
   target_link_libraries(test_command_parser PRIVATE cliphist_lib)
 
+  add_executable(test_app_icon tests/unit/test_app_icon.cpp)
+  target_link_libraries(test_app_icon PRIVATE cliphist_lib)
+
   add_test(NAME test_dedup COMMAND test_dedup)
   add_test(NAME test_retention COMMAND test_retention)
   add_test(NAME test_repository COMMAND test_repository)
   add_test(NAME test_cli_list COMMAND test_cli_list)
   add_test(NAME test_command_parser COMMAND test_command_parser)
+  add_test(NAME test_app_icon COMMAND test_app_icon)
 endif()
 
 set(CPACK_PACKAGE_NAME "cliphist")
@@ -238,7 +261,15 @@ if(WIN32)
   set(CPACK_NSIS_PACKAGE_NAME "cliphist")
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
   set(CPACK_NSIS_MODIFY_PATH ON)
-  set(CPACK_NSIS_MENU_LINKS "bin\\\\cliphist.exe" "cliphist")
+  set(CPACK_NSIS_MENU_LINKS "bin\\\\cliphist-gui.exe" "cliphist")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\cliphist-gui.exe")
+  set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/cliphist.ico")
+  set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS
+      "ExecWait '$SYSDIR\\\\taskkill.exe /IM cliphist-gui.exe /F /T'\n"
+      "ExecWait '$SYSDIR\\\\taskkill.exe /IM cliphist.exe /F /T'")
+  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
+      "ExecWait '$SYSDIR\\\\taskkill.exe /IM cliphist-gui.exe /F /T'\n"
+      "ExecWait '$SYSDIR\\\\taskkill.exe /IM cliphist.exe /F /T'")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(CPACK_GENERATOR "TGZ;DEB")
   set(CPACK_DEBIAN_PACKAGE_MAINTAINER "cliphist")

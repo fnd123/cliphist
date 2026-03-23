@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "util/Path.hpp"
+
 namespace cliphist {
 
 namespace {
@@ -47,7 +49,7 @@ bool ArchiveStore::SaveText(std::int64_t unix_sec, const std::string& text) {
   std::error_code ec;
   const std::tm tm = LocalTime(unix_sec);
   const std::filesystem::path day_dir =
-      std::filesystem::path(base_dir_) / BuildDateDir(tm);
+      FsPathFromUtf8(base_dir_) / BuildDateDir(tm);
 
   std::filesystem::create_directories(day_dir, ec);
   if (ec) {
@@ -74,16 +76,16 @@ bool ArchiveStore::SaveText(std::int64_t unix_sec, const std::string& text) {
     return false;
   }
 
-  last_path_ = file.string();
+  last_path_ = Utf8FromFsPath(file);
   return true;
 }
 
 std::string ArchiveStore::ArchiveDirForDb(const std::string& db_path) {
-  const std::filesystem::path p(db_path);
+  const std::filesystem::path p = FsPathFromUtf8(db_path);
   if (p.has_parent_path()) {
-    return (p.parent_path() / "archive").string();
+    return Utf8FromFsPath(p.parent_path() / "archive");
   }
-  return (std::filesystem::temp_directory_path() / "cliphist_archive").string();
+  return TempDirectoryUtf8() + "/cliphist_archive";
 }
 
 }  // namespace cliphist

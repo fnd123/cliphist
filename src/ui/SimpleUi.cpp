@@ -41,6 +41,7 @@
 #include <QScrollBar>
 #include <QWidget>
 
+#include "ui/AppIcon.hpp"
 #include "util/Time.hpp"
 
 namespace cliphist {
@@ -215,6 +216,7 @@ class ClipboardWindow final : public QMainWindow {
         refresh_interval_ms_(std::max(200, refresh_interval_ms)),
         settings_("cliphist", "cliphist-ui") {
     setWindowTitle(kWindowTitle);
+    setWindowIcon(CreateCliphistIcon());
     resize(1220, 820);
     BuildUi();
     ApplyTheme();
@@ -333,6 +335,8 @@ class ClipboardWindow final : public QMainWindow {
     pause_action_ = more_menu_->addAction("暂停监听");
     clear_history_action_ = more_menu_->addAction("清空历史");
     more_menu_->addSeparator();
+    always_on_top_action_ = more_menu_->addAction(QString::fromUtf8("窗口置顶显示"));
+    always_on_top_action_->setCheckable(true);
     export_text_action_ = more_menu_->addAction("导出文本");
     export_json_action_ = more_menu_->addAction("导出 JSON");
     more_button_->setMenu(more_menu_);
@@ -462,6 +466,8 @@ class ClipboardWindow final : public QMainWindow {
             [this]() { TogglePause(); });
     connect(clear_history_action_, &QAction::triggered, this,
             [this]() { ClearHistory(); });
+    connect(always_on_top_action_, &QAction::triggered, this,
+            [this]() { ToggleAlwaysOnTop(); });
     connect(export_text_action_, &QAction::triggered, this,
             [this]() { ExportHistory(false); });
     connect(export_json_action_, &QAction::triggered, this,
@@ -479,11 +485,13 @@ class ClipboardWindow final : public QMainWindow {
     }
     auto_copy_enabled_ = settings_.value("ui/auto_copy", false).toBool();
     favorites_only_ = settings_.value("ui/favorites_only", false).toBool();
+    always_on_top_ = settings_.value("ui/always_on_top", false).toBool();
     const QStringList groups =
         settings_.value("ui/collapsed_groups").toStringList();
     for (const QString& group : groups) {
       collapsed_groups_.insert(group);
     }
+    ApplyAlwaysOnTop(false);
     UpdateActionButtons();
   }
 
@@ -494,6 +502,7 @@ class ClipboardWindow final : public QMainWindow {
     }
     settings_.setValue("ui/auto_copy", auto_copy_enabled_);
     settings_.setValue("ui/favorites_only", favorites_only_);
+    settings_.setValue("ui/always_on_top", always_on_top_);
     QStringList groups;
     for (const QString& group : collapsed_groups_) {
       groups.push_back(group);
@@ -892,6 +901,12 @@ class ClipboardWindow final : public QMainWindow {
 
   void UpdateActionButtons() {
     auto_copy_button_->setText(auto_copy_enabled_ ? "自动复制: 开" : "自动复制: 关");
+    if (always_on_top_action_ != nullptr) {
+      always_on_top_action_->setChecked(always_on_top_);
+      always_on_top_action_->setText(
+          always_on_top_ ? QString::fromUtf8("取消窗口置顶")
+                         : QString::fromUtf8("窗口置顶显示"));
+    }
     const bool has_selection = CurrentEntry() != nullptr;
     copy_button_->setEnabled(has_selection);
     favorite_button_->setEnabled(has_selection);
@@ -900,6 +915,18 @@ class ClipboardWindow final : public QMainWindow {
     save_button_->setEnabled(has_selection && draft_dirty_);
     discard_button_->setEnabled(has_selection && draft_dirty_);
     preview_->setEnabled(has_selection);
+  }
+
+  void ApplyAlwaysOnTop(bool raise_window) {
+    const bool was_visible = isVisible();
+    setWindowFlag(Qt::WindowStaysOnTopHint, always_on_top_);
+    if (was_visible) {
+      show();
+      if (raise_window) {
+        raise();
+        activateWindow();
+      }
+    }
   }
 
   void CopyText(const QString& text, const QString& message) {
@@ -963,6 +990,14 @@ class ClipboardWindow final : public QMainWindow {
   void ToggleAutoCopy() {
     auto_copy_enabled_ = !auto_copy_enabled_;
     status_label_->setText(auto_copy_enabled_ ? "已开启自动复制" : "已关闭自动复制");
+    UpdateActionButtons();
+  }
+
+  void ToggleAlwaysOnTop() {
+    always_on_top_ = !always_on_top_;
+    ApplyAlwaysOnTop(always_on_top_);
+    status_label_->setText(always_on_top_ ? QString::fromUtf8("已开启窗口置顶显示")
+                                          : QString::fromUtf8("已关闭窗口置顶显示"));
     UpdateActionButtons();
   }
 
@@ -1080,6 +1115,7 @@ class ClipboardWindow final : public QMainWindow {
   QTimer refresh_timer_;
   bool auto_copy_enabled_ = false;
   bool favorites_only_ = false;
+  bool always_on_top_ = false;
   bool draft_dirty_ = false;
   bool pending_refresh_ = false;
 
@@ -1100,6 +1136,7 @@ class ClipboardWindow final : public QMainWindow {
   QMenu* more_menu_ = nullptr;
   QAction* pause_action_ = nullptr;
   QAction* clear_history_action_ = nullptr;
+  QAction* always_on_top_action_ = nullptr;
   QAction* export_text_action_ = nullptr;
   QAction* export_json_action_ = nullptr;
   QLineEdit* search_ = nullptr;
@@ -1129,6 +1166,7 @@ int SimpleUi::Run(FetchEntriesFn fetch_entries, ToggleFavoriteFn toggle_favorite
     app = owned_app.get();
   }
   app->setQuitOnLastWindowClosed(true);
+  app->setWindowIcon(CreateCliphistIcon());
 
   ClipboardWindow window(std::move(fetch_entries), std::move(toggle_favorite),
                          std::move(toggle_pause), std::move(is_paused),

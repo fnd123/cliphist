@@ -28,15 +28,17 @@
 #include "core/RetentionPolicy.hpp"
 #include "db/Database.hpp"
 #include "db/HistoryRepository.hpp"
+#include "ui/AppIcon.hpp"
 #include "util/ArchiveStore.hpp"
 #include "util/Logger.hpp"
+#include "util/Path.hpp"
 #include "util/Time.hpp"
 
 namespace cliphist {
 
 namespace {
 std::filesystem::path PauseStatePath(const std::string& db_path) {
-  return std::filesystem::path(db_path).parent_path() / "pause.state";
+  return FsPathFromUtf8(db_path).parent_path() / "pause.state";
 }
 
 bool ReadPausedState(const std::string& db_path) {
@@ -94,7 +96,7 @@ void BackfillArchiveIfNeeded(HistoryRepository& repo, const std::string& db_path
                              ArchiveStore* archive_store) {
   const std::string archive_dir = ArchiveStore::ArchiveDirForDb(db_path);
   const std::filesystem::path marker =
-      std::filesystem::path(archive_dir) / ".backfilled_v1";
+      FsPathFromUtf8(archive_dir) / ".backfilled_v1";
   if (std::filesystem::exists(marker)) {
     return;
   }
@@ -240,6 +242,7 @@ int RunQtAppLoop(const std::function<void(QApplication&)>& setup_app) {
     owned_app = std::make_unique<QApplication>(argc, argv);
     app = owned_app.get();
   }
+  app->setWindowIcon(CreateCliphistIcon());
   setup_app(*app);
   return app->exec();
 }
@@ -382,10 +385,7 @@ int RunQtDesktopSession(const CommandOptions& options) {
                        [&app]() { app.quit(); });
     };
 
-    auto tray_icon = QIcon::fromTheme("cliphist");
-    if (tray_icon.isNull()) {
-      tray_icon = app.style()->standardIcon(QStyle::SP_FileDialogDetailedView);
-    }
+    const QIcon tray_icon = CreateCliphistIcon();
     QSystemTrayIcon* tray = nullptr;
     if (QSystemTrayIcon::isSystemTrayAvailable()) {
       LogInfo("system tray available");
@@ -420,6 +420,7 @@ int RunQtDesktopSession(const CommandOptions& options) {
     });
 
     launch_or_focus_ui();
+
   });
 }
 

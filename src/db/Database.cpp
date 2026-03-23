@@ -2,6 +2,8 @@
 
 #include <filesystem>
 
+#include "util/Path.hpp"
+
 namespace cliphist {
 
 namespace {
@@ -27,7 +29,7 @@ Database::~Database() { Close(); }
 bool Database::Open(const std::string& db_path) {
   Close();
 
-  const std::filesystem::path p(db_path);
+  const std::filesystem::path p = FsPathFromUtf8(db_path);
   if (p.has_parent_path()) {
     std::error_code ec;
     std::filesystem::create_directories(p.parent_path(), ec);
@@ -37,7 +39,17 @@ bool Database::Open(const std::string& db_path) {
     }
   }
 
-  const int rc = sqlite3_open(db_path.c_str(), &db_);
+  int rc = SQLITE_OK;
+#ifdef _WIN32
+  const std::wstring wide_db_path = WideFromUtf8(db_path);
+  if (wide_db_path.empty()) {
+    last_error_ = "failed to convert db path to UTF-16";
+    return false;
+  }
+  rc = sqlite3_open16(wide_db_path.c_str(), &db_);
+#else
+  rc = sqlite3_open(db_path.c_str(), &db_);
+#endif
   if (rc != SQLITE_OK) {
     last_error_ = sqlite3_errmsg(db_);
     Close();

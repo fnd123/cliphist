@@ -9,6 +9,7 @@
 #include "core/RetentionPolicy.hpp"
 #include "db/HistoryRepository.hpp"
 #include "util/ArchiveStore.hpp"
+#include "util/Path.hpp"
 #include "util/Time.hpp"
 #include "x11/ClipboardWatcher.hpp"
 
@@ -29,7 +30,7 @@ int RunDaemonLoop(const CommandOptions& options, HistoryRepository& repo,
   ArchiveStore archive_store(archive_dir);
 
   const std::filesystem::path marker =
-      std::filesystem::path(archive_dir) / ".backfilled_v1";
+      FsPathFromUtf8(archive_dir) / ".backfilled_v1";
   if (!std::filesystem::exists(marker)) {
     ListOptions all_options;
     all_options.limit = std::max(1, repo.Count());

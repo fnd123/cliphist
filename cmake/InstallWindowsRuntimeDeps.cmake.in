@@ -38,6 +38,18 @@ if(EXISTS "${_cliphist_installed_platform_plugin}")
   list(APPEND _cliphist_probe_libraries "${_cliphist_installed_platform_plugin}")
 endif()
 
+# MinGW/MSYS2 packaging needs an explicit PE dependency scanner; otherwise
+# GET_RUNTIME_DEPENDENCIES can return an empty result set during CPack staging.
+if(NOT DEFINED CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM)
+  set(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM "windows+pe")
+endif()
+if(NOT DEFINED CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL)
+  set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "objdump")
+endif()
+if(NOT DEFINED CMAKE_OBJDUMP)
+  set(CMAKE_OBJDUMP "@CMAKE_OBJDUMP@")
+endif()
+
 set(_cliphist_runtime_dep_args
     EXECUTABLES "${_cliphist_executable}"
     RESOLVED_DEPENDENCIES_VAR _cliphist_resolved_dependencies
